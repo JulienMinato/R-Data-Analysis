@@ -39,6 +39,8 @@ sd(c(12,15))
 # Bootstrapping
 Extended Time data from 4 to 400
 
+
+
 ```{r}
 set.seed(12345)
 expande_ObjTime_Kindle <- rnorm(15, mean = 17.50, sd=2)
