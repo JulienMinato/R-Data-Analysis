@@ -1,0 +1,89 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+## Environment setup
+```{r setup, echo=T, results='hide', error=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(Sleuth3)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+```
+
+
+# 1. Data Visualization
+
+Data Visualization is regarded by many disciplines as a modern concept that has the same meaning as visual communication. It involves the creation and research of the visual representation of data. Data visualization is both an art and a science.
+
+# 2. ggplot2
+
+```{r}
+print(mpg)
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy))
+
+
+```
+
+
+
+```{r}
+#You can add a third variable to the two-dimensional scatter plot, such as class, square
+#The formula is to map it as a graphical attribute.
+ggplot(data = mpg) + geom_point(
+  mapping = aes(x = displ, y = hwy, color = class))
+```
+
+
+
+```{r}
+
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy))
+
+ggplot(data = mpg) +
+  geom_smooth(mapping = aes(x = displ, y = hwy))
+```
+
+
+
+```{r}
+
+
+
+#Left 
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy, alpha = class))
+
+#Right
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy, shape = class, color = model))
+
+
+```
+
+
+```{r}
+
+ggplot(data = mpg,
+       mapping = aes(x = displ, y = hwy)) +
+  geom_point(mapping = aes(color = class)) +
+  geom_smooth(data = filter(
+    mpg, class == "subcompact"), se = FALSE)
+```
+

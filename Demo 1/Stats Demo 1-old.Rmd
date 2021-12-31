@@ -1,0 +1,103 @@
+---
+title: "Stats Demo 1"
+output: pdf_document
+---
+
+## Environment setup
+```{r setup, echo=T, results='hide', error=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(Sleuth3)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+#library(ggplot2)
+```
+
+# 1. Creating data
+Creating data for test. Prices for CS course books in OSU bookstore.
+Notice the difference between lists and Data frames.
+```{r}
+Prices <- c(99.34, 51.53, 20.45, 97.22, 61.89, 58.17, 61.63, 44.63, 96.69, 48.88)
+Prices
+
+typeof(Prices)
+
+#check? data_frame(Prices)
+is.data.frame(Prices)
+
+#as trans the type
+PricesDF <- as.data.frame(Prices)
+colnames(PricesDF) <- ("Price")
+PricesDF$Price
+PricesDF
+
+Genres <- factor(c("Science", "Engineering", "Art", "Science",
+"Math", "Engineering", "Art", "Math", "Engineering", "Art"))
+BookStore <- data.frame(Price = Prices, Genre = Genres)
+BookStore
+
+
+```
+
+# 2. Working with data
+Manipulating data frames is easier as each column becomes an object.
+```{r}
+
+```
+
+# 3. Plots
+`ggplot` provides a platform to plot various plots by changing the graph types. Refer to https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf for common commands.
+The type of plot depends on the nature of the variable. Here we see how bar plots are better suited for discreet data:
+```{r}
+
+```
+
+# 4. Distribution of Data
+Sampling from any distribution, we can examine a histogram of the data:
+```{r}
+
+```
+
+# 5. Central Limit Theorem
+When repeated samples are drawn with a sample size~=30, the sample mean distribution approximately represents a normal distribution:
+```{r}
+
+```
+
+# 6. One sample t-test
+Test whether the mean price of your sample of CS books is significantly different from the mean price of all books in the OSU bookstore (population):
+```{r}
+
+```
+
+# 7. Two sample t-test
+What about when we compare against the mean price of all books on Amazon? We can compare using a similarly sized sample from Amazon. We then test if the mean prices are significantly different between the two samples:
+```{r}
+
+```
+
+# 8. One and two-tail analysis
+
+alternative: the alternative hypothesis. Allowed value is one of “two.sided” (default), “greater” or “less”.
+var.equal: a logical variable indicating whether to treat the two variances as being equal. If TRUE then the pooled variance is used to estimate the variance otherwise the Welch test is used.
+```{r}
+
+```
+
+
+# 9. Paired t-test
+When there exists a natural pairing in the observations. For example, when comparing the prices of the same books in Amazon and OSU BookStore.
+
+```{r}
+
+```
+
+
+# 10. Reporting
+
+<!-- Conclusion statement goes here... -->
+
+
+

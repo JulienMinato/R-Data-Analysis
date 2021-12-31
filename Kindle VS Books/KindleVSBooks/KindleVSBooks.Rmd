@@ -1,0 +1,154 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+#  Environment setup
+```{r}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(modeest) # required for `mfv()` function
+library(nortest)
+```
+
+# Loading the data
+```{r}
+data_original <- read.csv('data.csv')
+print(data_original)
+
+mode(data_original)
+typeof(data_original)
+is.data.frame(data_original)
+
+
+
+sd(c(12,15))
+
+```
+# Bootstrapping
+Extended Time data from 4 to 400
+
+```{r}
+set.seed(12345)
+expande_ObjTime_Kindle <- rnorm(15, mean = 17.50, sd=2)
+expande_ObjTime_Kindle <- round(expande_ObjTime_Kindle, 0)
+
+
+expande_ObjTime_PrintBook <- rnorm(15, mean = 16.50, sd=2)
+expande_ObjTime_PrintBook <- round(expande_ObjTime_PrintBook, 0)
+
+
+e_ObjTime <- append(expande_ObjTime_Kindle, expande_ObjTime_PrintBook)
+
+
+expande_SubTime_Kindle <- rnorm(15, mean = 11, sd=3)
+expande_SubTime_Kindle <- round(expande_SubTime_Kindle, 0)
+#expande_SubTime_Kindle
+
+
+expande_SubTime_PrintBook <- rnorm(15, mean = 13.50, sd=3)
+expande_SubTime_PrintBook <- round(expande_SubTime_PrintBook, 0)
+#expande_SubTime_PrintBook
+
+e_SubTime <- append(expande_SubTime_Kindle, expande_SubTime_PrintBook)
+
+```
+
+Extended data from 4 to 4000
+```{r}
+#set.seed(8745)
+
+expande_EE_Kindle <- rnorm(15, mean = 33.50, sd=15)
+expande_EE_Kindle <- round(expande_EE_Kindle, 0)
+
+expande_EE_PrintBook <- rnorm(15, mean = 22.50, sd=12)
+expande_EE_PrintBook <- round(expande_EE_PrintBook, 0)
+
+e_EE <- append(expande_EE_Kindle, expande_EE_PrintBook)
+
+
+expande_Recall_Kindle <- rnorm(15, mean = 18.00, sd=2)
+expande_Recall_Kindle <- round(expande_Recall_Kindle, 0)
+
+expande_Recall_PrintBook <- rnorm(15, mean = 18.00, sd=4)
+expande_Recall_PrintBook <- round(expande_Recall_PrintBook, 0)
+
+e_Recall <- append(expande_Recall_Kindle, expande_Recall_PrintBook)
+
+
+expande_Reconstruct_Kindle <- rnorm(15, mean = 4, sd = 1)
+expande_Reconstruct_Kindle <- round(expande_Reconstruct_Kindle, 0)
+
+expande_Reconstruct_PrintBook <- rnorm(15, mean = 4 , sd = 1)
+expande_Reconstruct_PrintBook <- round(expande_Reconstruct_PrintBook, 0)
+
+e_Reconstruct <- append(expande_Reconstruct_Kindle, expande_Reconstruct_PrintBook)
+
+```
+
+# Loading the new data
+
+```{r}
+
+data_expande <- data.frame (Media = rep (c("kindle", "PrintBook"), each = 15), ObjTime = c(e_ObjTime), SubTime = c(e_SubTime), EmotionalEngagement = c(e_EE), Recall= c(e_Recall), Reconstruct
+                            =c(e_Reconstruct) )
+data_expande
+
+
+qqnorm(data_expande$EmotionalEngagement)
+qqline(data_expande$EmotionalEngagement, col="blue")
+ad.test(data_expande$ObjTime)
+ad.test(data_expande$SubTime)
+
+ad.test(data_expande$EmotionalEngagement)
+
+
+write.csv(data_expande,"data_expande.csv", row.names = FALSE)
+
+
+mean(data_expande$Reconstruct[which(data_expande$Media == "kindle")])
+mean(data_expande$Reconstruct[which(data_expande$Media == "PrintBook")])
+
+
+```
+
+
+# t-test for ObjTime& SubTime
+Two-sample t-test
+```{r}
+mean(data_expande$ObjTime)
+sd(data_expande$ObjTime)
+
+
+t.test(data_expande$ObjTime ~ data_expande$Media, alternative = "two.sided", var.equal = TRUE)
+
+t.test(data_expande$SubTime ~ data_expande$Media, alternative = "two.sided", var.equal = TRUE)
+
+```
+
+# t-test for point
+
+```{r}
+
+
+t.test(data_expande$EmotionalEngagement ~ data_expande$Media, alternative = "two.sided", var.equal = TRUE)
+
+t.test(data_expande$Recall ~ data_expande$Media, alternative = "two.sided", var.equal = TRUE)
+
+t.test(data_expande$Reconstruct ~ data_expande$Media, alternative = "two.sided", var.equal = TRUE)
+# t.test(data_expande$Reconstruct ~ data_expande$Media)
+
+
+```
+

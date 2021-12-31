@@ -1,0 +1,101 @@
+---
+title: "Stats Demo 2"
+output: pdf_document
+---
+
+## Environment setup
+Same initial steps that we ran in `Stats Demo 1`, just consolidated.
+```{r setup, echo=T, results='hide', error=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(Sleuth3) # example datasets from textbook, "The Statistical Sleuth - A Course in 
+# Methods of Data Analysis (3rd Edition)"
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(modeest) # required for `mfv()` function
+```
+
+## Data setup
+This time, we're expanding the book store dataset to contain `n=20` data points so that our statistical tests have a meaningful sample size:
+```{r}
+BookStore <- data.frame(
+  Price=c(99.34, 51.53, 20.45, 97.22, 61.89, 58.17, 61.63, 44.63, 96.69, 48.88, 
+          55.98, 38.82, 45.14, 70.99, 48.85, 67.49, 53.90, 42.01, 61.35, 55.75), 
+  Genre=factor(c('Science', 'Engineering', 'Art', 'Science', 'Math', 'Engineering', 'Art', 'Math', 'Engineering', 'Art',
+                 'Math', 'Art', 'Art', 'Engineering', 'Math', 'Science', 'Engineering', 'Art', 'Science', 'Math'))
+  )
+BookStore
+```
+
+# 6. Pairwise Comparison Testing (t-test)
+
+Statistical tests come in a variety of formats, primarily based on the strictness of assumptions. For example, a t-test (also known as a Student's t-test) can only be used when comparing the means of one or two groups (aka pairwise comparison). If you want to compare more than two groups, or if you want to do multiple pairwise comparisons, use an ANOVA test or a post-host test.
+
+## Parametric test assumptions
+
+The t-test is a parametric test of difference, meaning that it makes the same assumptions about your data as other parametric tests. The t-test assumes your data:
+
+1. are independent
+2. are (approximately) normally distributed
+3. have a similar amount of variance within each group being compared (aka homogeneity of variance)
+
+If the data do not fit these assumptions, you can try a non-parametric alternative to the t-test, such as the Wilcoxon Signed-Rank test for data with unequal variances.
+
+## One-sample t-test
+To test whether the mean price of our textbook sample is statistically different than the mean price of all books in the OSU bookstore (population), we can run a one-sample t-test (let's assume that the bookstore has a mean price of \$85):
+```{r}
+t.test(BookStore$Price, mu=85, alternative = "two.sided")
+
+```
+
+## Two-sample t-test
+If we also want to compare the price of our textbook sample against the mean price of all books on Amazon, we could take a similarly sized sample of book prices on Amazon. We would then run a two-sample t-test (aka independent t-test) to test whether the mean prices are significantly different between the OSU Bookstore and Amazon samples:
+
+```{r}
+Amazon <- data.frame(
+  Price=c(31.87, 58.94, 40.39, 117.99, 108.29, 78.44, 103.94, 96.44, 65.74, 63.49,
+          55.19, 92.65, 35.55, 104.49, 97.89, 74.87, 89.99, 19.99, 58.19, 80.89), 
+  Genre=factor(c('Poetry', 'Mathematics', 'Psychology', 'Medical', 'Biology', 'Mathematics', 'Literature', 'Medical', 'Linguistics', 'Accounting',
+                 'Physics', 'Psychology', 'Poetry', 'Medical', 'Medical', 'Literature', 'Accounting', 'Mathematics', 'Literature', 'Biology'))
+  )
+
+Comparison <- data.frame(Store=rep(c("Bookstore", "Amazon"), each =20), Price=c(BookStore$Price, Amazon$Price), Genre=c(BookStore$Genre, Amazon$Genre))
+Comparison
+
+t.test(Comparison$Price ~ Comparison$Store)
+#t.test(Comparison$Price, Comparison$Store)
+
+```
+How do we interpret these results? What are the hypotheses that we are examining?
+
+
+## Paired t-test
+If we are interested to see whether their was a change in the price of books at the OSU Bookstore after Amazon began listing them, then we are interested in testing for a paired effect. When we are interested in examining the difference between two variables from the same subject (e.g. measuring before and after an experimental treatment, or comparing the left- and right-hand weight lifting strength for each subject), we can use a paired t-test:
+```{r}
+BeforeAmazon <- c(92.99, 50.98, 24.14, 101.50, 45.59, 69.95, 64.69, 58.29, 120.22, 49.90, 
+          52.99, 47.25, 54.99, 80.00, 62.65, 69.59, 57.35, 40.95, 82.84, 63.29)
+AfterAmazon <- BookStore$Price
+
+t.test(BeforeAmazon, AfterAmazon, paired = TRUE)
+```
+How do we interpret these results? What are the hypotheses that we are examining?
+
+## One- and two-tail t-test
+If we only care whether the populations (books in the OSU Bookstore and Amazon) are different from one another, we should perform a two-tailed t-test. And if we only want to know whether one population mean is greater than or less than the other, we should perform a one-tailed t-test:
+
+```{r}
+
+t.test(Comparison$Price ~ Comparison$Store, alternative = "two.sided", var.equal= FALSE)
+t.test(Comparison$Price ~ Comparison$Store, alternative = "greater", var.equal= FALSE)
+t.test(Comparison$Price ~ Comparison$Store, alternative = "less", var.equal= FALSE)
+
+
+```
+
+How do we interpret these results? What are the hypotheses that we are examining?
+
+
+

@@ -1,0 +1,282 @@
+---
+title: "Stats Demo 2"
+output: pdf_document
+---
+
+## Environment setup
+Same initial steps that we ran in `Stats Demo 1`, just consolidated.
+```{r setup, echo=T, results='hide', error=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(Sleuth3) # example datasets from textbook, "The Statistical Sleuth - A Course in 
+# Methods of Data Analysis (3rd Edition)"
+library(MASS) # example dataset representing the sales of different models of cars in 1993
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(modeest) # required for `mfv()` function
+library(nortest) # required for running Anderson-Darling test for normality
+```
+
+## Data setup
+This time, we're expanding the book store dataset to contain `n=20` data points so that our statistical tests have a meaningful sample size:
+```{r}
+BookStore <- data.frame(
+  Price=c(99.34, 51.53, 20.45, 97.22, 61.89, 58.17, 61.63, 44.63, 96.69, 48.88, 
+          55.98, 38.82, 45.14, 70.99, 48.85, 67.49, 53.90, 42.01, 61.35, 55.75), 
+  Genre=factor(c('Science', 'Engineering', 'Art', 'Science', 'Math', 'Engineering', 'Art', 'Math', 'Engineering', 'Art',
+                 'Math', 'Art', 'Art', 'Engineering', 'Math', 'Science', 'Engineering', 'Art', 'Science', 'Math'))
+  )
+BookStore
+```
+
+# 6. Pairwise Comparison Testing (t-test)
+
+Statistical tests come in a variety of formats, primarily based on the strictness of assumptions. For example, a t-test (also known as a Student's t-test) can only be used when comparing the means of one or two groups (aka pairwise comparison). If you want to compare more than two groups, or if you want to do multiple pairwise comparisons, use an ANOVA test or a post-host test.
+
+## Parametric test assumptions
+
+The t-test is a parametric test of difference, meaning that it makes the same assumptions about your data as other parametric tests. The t-test assumes your data:
+
+1. are independent
+2. are (approximately) normally distributed
+3. have a similar amount of variance within each group being compared (aka homogeneity of variance)
+
+If the data do not fit these assumptions, you can try a non-parametric alternative to the t-test, such as the Wilcoxon Signed-Rank test for data with unequal variances.
+
+## One-sample t-test
+To test whether the mean price of our textbook sample is statistically different than the mean price of all books in the OSU bookstore (population), we can run a one-sample t-test (let's assume that the bookstore has a mean price of \$85):
+```{r}
+# the `mu` option indicates the true value of the mean, i.e. the mean price of all books in the OSU bookstore
+t.test(BookStore$Price, mu = 85, alternative = "two.sided")
+```
+
+Let's examine each portion of the results. The output provides:
+
+1. An explanation of what is being compared, called `data` in the output table.
+2. The **t-value** (labeled `t`), which indicates 5.7931. Note that it's negative; this is fine. In most cases, we only care about the absolute value of the difference, or the distance from 0. It doesn't matter which direction.
+3. The **degrees of freedom** (labeled `df`), which indicates 19. Degrees of freedom is related to the sample size, and shows how many "free" data points are available in your test for making comparisons. The greater the degrees of freedom, the better your statistical test will work.
+4. The `p-value`, which indicates 1.397e-05 (i.e. 1.397 with 5 zeros in front). This describes the probability that you would see a *t-value* as large as this one by chance.
+5. A statement of the `alternative hypothesis` (also referred to as H~a~). In this test, the H~a~ is that the sample mean is not equal to the population mean.
+6. The 95% `confidence interval`. This is the range of numbers within which the true difference in means will be 95% of the time. This can change from 95% if you want a larger or smaller interval, but 95% is very commonly used.
+7. The `mean` price for our sample.
+
+Interpreting the results for our specific test, we can see that the mean price of our 10 textbook sample is \$59.04 (rounded to dollars and cents) and the confidence interval shows that the true mean is between \$49.66 and \$68.42 (rounded). So, 95% of the time, the true mean will be different from \$85. Our p-value of 0.00001397 is much smaller than 0.05, so we can **reject the null hypothesis** of mean being equal to \$85 and say with a high degree of confidence that the **true mean is not equal to \$85**. Thus, the sample mean differs from the population mean in a statistically significant way.
+
+## Two-sample t-test
+If we also want to compare the price of our textbook sample against the mean price of all books on Amazon, we could take a similarly sized sample of book prices on Amazon. We would then run a two-sample t-test (aka independent t-test) to test whether the mean prices are significantly different between the OSU Bookstore and Amazon samples:
+
+```{r}
+Amazon <- data.frame(
+  Price=c(31.87, 58.94, 40.39, 117.99, 108.29, 78.44, 103.94, 96.44, 65.74, 63.49,
+          55.19, 92.65, 35.55, 104.49, 97.89, 74.87, 89.99, 19.99, 58.19, 80.89), 
+  Genre=factor(c('Poetry', 'Mathematics', 'Psychology', 'Medical', 'Biology', 'Mathematics', 'Literature', 'Medical', 'Linguistics', 'Accounting',
+                 'Physics', 'Psychology', 'Poetry', 'Medical', 'Medical', 'Literature', 'Accounting', 'Mathematics', 'Literature', 'Biology'))
+  )
+
+Comparison <- data.frame(Store=rep(c("Bookstore", "Amazon"), each=20), Price=c(BookStore$Price, Amazon$Price), Genre=c(BookStore$Genre, Amazon$Genre))
+Comparison
+
+# t.test(weight ~ group)
+t.test(Comparison$Price ~ Comparison$Store)
+```
+How do we interpret these results? What are the hypotheses that we are examining?
+
+The **null hypothesis** is that there is no difference between the Bookstore and Amazon samples. But the `p-value` is 0.06471, which is above our threshold for statistical significance (`p<0.05`). Therefore, we cannot reject the null hypothesis and instead we find that we have insufficient evidence to conclude whether there is a difference in mean price between the OSU Bookstore and Amazon.
+
+## Paired t-test
+If we are interested to see whether their was a change in the price of books at the OSU Bookstore after Amazon began listing them, then we are interested in testing for a paired effect. When we are interested in examining the difference between two variables from the same subject (e.g. measuring before and after an experimental treatment, or comparing the left- and right-hand weight lifting strength for each subject), we can use a paired t-test:
+```{r}
+BeforeAmazon <- c(92.99, 50.98, 24.14, 101.50, 45.59, 69.95, 64.69, 58.29, 120.22, 49.90, 
+          52.99, 47.25, 54.99, 80.00, 62.65, 69.59, 57.35, 40.95, 82.84, 63.29)
+AfterAmazon <- BookStore$Price
+
+t.test(BeforeAmazon, AfterAmazon, paired=TRUE)
+```
+How do we interpret these results? What are the hypotheses that we are examining?
+
+The **null hypothesis** is that there is no difference between the OSU Bookstore prices before and after Amazon began listing the same textbooks. The `p-value` is 0.01562, so we can **reject the null hypothesis** of no difference and say with a high degree of confidence that the **true difference in means is not equal to zero**. Thus, we can conclude that Amazon listing the same textbooks had an effect on the prices of textbooks at the OSU Bookstore.
+
+Are there any **confounding factors** that might also factor into this result? Since these are textbooks, there is the real possibility that the same textbook got reduced in price in response to a newer edition being published (and thus reducing the value of the older edition).
+
+## One- and two-tail t-test
+If we only care whether the populations (books in the OSU Bookstore and Amazon) are different from one another, we should perform a two-tailed t-test. And if we only want to know whether one population mean is greater than or less than the other, we should perform a one-tailed t-test:
+
+```{r}
+# note: the one-sample t-test that we examined earlier also used a "two-sided" alternative, but compared against a fixed mean from the population
+t.test(Comparison$Price ~ Comparison$Store, alternative = "two.sided", var.equal = FALSE)
+t.test(Comparison$Price ~ Comparison$Store, alternative = "greater", var.equal = FALSE)
+t.test(Comparison$Price ~ Comparison$Store, alternative = "less", var.equal = FALSE)
+
+# setting `var.equal = TRUE` results in a pooled variance
+# Setting the variances to be equal simplifies variance estimation and increases the power of the test, but can cause severely miscalculated variances when the means are in fact different.
+# Always allow the variances to be estimated for finite sample sizes by setting `var.equal = FALSE`.
+```
+
+How do we interpret these results? What are the hypotheses that we are examining?
+
+The `alternative hypothesis` and `null hypothesis` should be easy to ascertain now. So if we only look at the interesting results, where `p<0.05`, then we see that there is evidence that the difference in means between the OSU Bookstore prices and the Amazon prices is likely a greater than zero. This is evidence that the price for Amazon books is significantly higher than the books in the OSU Bookstore, and we should probably buy our textbooks from the campus store.
+
+# 7. Test for Normality
+
+Plotting the distribution of a sample provides the ability to make an initial assessment about whether your data has a normal distribution. But if the plot is noisy, the visual inspection method might not be enough. That's where a test for normality comes to the rescue.
+
+A test of normality is used to quantify whether a certain sample was generated from a population with a **normal distribution** via process that produces independent and identically-distributed values. Normality tests should be run on the full data without removing any outliers, unless the reason for the outlier is known and its removal from the analysis as a whole can be readily justified (e.g. erroneously recorded data, data from sources later proven to be unreliable, noise that distorted the voracity of the data, etc.).
+
+While hypothesis tests are usually constructed to *reject* the null hypothesis, this is a case where we actually hope we *fail to reject* the null hypothesis as this would mean that the errors follow a normal distribution.
+
+If we find that the distribution of our data is not normal, we have to choose a non-parametric statistical test (e.g. Mann-Whitney test, Spearman's correlation coefficient) or so-called distribution-free tests.
+
+## Shapiro-Wilk test
+The Shapiro-Wilk test is widely used to check normality. It is not as sensitive to duplicate data as the Kolmogorov-Smirnov test (which predates many of the more common normality tests). The null hypothesis of a Shapiro-Wilk test is that the sample distribution is normal. If we fail to reject the null hypothesis, the sample is likely from a normal distribution. If the test is significant (i.e. we reject the null hypothesis), then the sample is non-normal and we must switch to using non-parametric variants for any further statistical analysis.
+```{r}
+# Shapiro-Wilk normality test
+#sample size must be between 3 and 5000
+shapiro.test(BookStore$Price)
+# Anderson-Darling normality test 
+# ad.test(expande_pbr)
+
+```
+
+
+**Warning**: In large sample sizes, the Shapiro-Wilk test becomes sensitive to even a small deviation from normality, and in case of very small sample sizes it is not sensitive enough. Therefore, the best approach is to combine visual inspection and statistical tests to ensure normality.
+
+## Anderson-Darling test
+The Anderson-Darling goodness-of-fit statistic (AD-value) measures the area between the fitted line (based on the normal distribution) and the empirical distribution function (which is based on the data points). The Anderson-Darling test is a squared distance that is weighted more heavily in the tails of the distribution.
+
+The p-value returned from Anderson-Darling is a probability that measures the evidence against the null hypothesis. Smaller p-values provide stronger evidence against the null hypothesis. Larger values indicate that the data do not follow the normal distribution. Additionally, the Anderson-Darling test is not as sensitive to deviations at larger sample sizes but has a recommended minimum of $n=7$, after which it reaches a point where the assumption is that only one point defines each tail and it is very easy to fit almost any data to a normal (Gaussian) distribution.
+```{r}
+ad.test(BookStore$Price)
+```
+
+
+## Q-Q plot
+When further evidence is needed in order to assess normality of a distribution, we can conduct an additional test. We can use a Q-Q (or quantile-quantile plot) to draw the correlation between a given sample and the normal distribution. A 45-degree reference line is also plotted to help to determine normality. This is a visual representation of the comparison between a sample distribution and it's deviation from the normal distribution which is evaluated statistically under both Shapiro-Wilk and Anderson-Darling tests.
+```{r}
+
+qqnorm(BookStore$Price)
+qqline(BookStore$Price, col="blue")
+
+```
+
+
+# 7. Multiple Pairwise Comparison Testing (ANOVA)
+
+ANOVA, which stands for **AN**alysis **O**f **VA**riance, is a statistical test used to analyze the difference between the means of more than two groups. A one-way ANOVA uses one independent variable, while a two-way ANOVA uses two independent variables.
+
+Use a one-way ANOVA when you have collected data about one **categorical independent variable** and one **quantitative dependent variable**. The independent variable should have at least three levels (i.e. at least three different groups or categories). Switch to a two-way ANOVA if you have two or more **categorical independent variables**.
+
+ANOVA tells you if the dependent variable changes according to the level of the independent variable. For example:
+
+* Your independent variable is **social media use**, and you assign groups to **low**, **medium**, and **high** levels of social media use to find out if there is a difference in **hours of sleep per night**.
+* Your independent variable is **brand of soda**, and you collect data on **Coke**, **Pepsi**, **Sprite**, and **Fanta** to find out if there is a difference in the **price per 100ml**.
+* Your independent variable is **type of fertilizer**, and you treat crop fields with mixtures **1**, **2**, and **3** to find of if there is a difference in **crop yield**.
+
+The *null hypothesis* (H~0~) of ANOVA is that there is no difference among group means. The *alternative hypothesis* (H~a~) is that at least one group differs from the overall mean of the dependent variable.
+
+If you only want to compare two groups, use a t-test instead.
+
+## One-way ANOVA
+For this example we will use the `case0502` dataset from the `Sleuth3` package and used in the accompanying textbook. This dataset has the following scenario:
+
+> In 1968, Dr. Benjamin Spock was tried in Boston on charges of conspiring to violate the Selective Service Act by encouraging young men to resist being drafted into military service for Vietnam. The defence in the case challenged the method of jury selection claiming that women were underrepresented. Boston juries are selected in three stages. First 300 names are selected at random from the City Directory, then a venire of 30 or more jurors is selected from the initial list of 300 and finally, an actual jury is selected from the venire in a nonrandom process allowing each side to exclude certain jurors. There was one woman on the venire and no women on the final list. The defence argued that the judge in the trial had a history of venires in which women were systematically underrepresented and compared the judge's recent venires with the venires of six other Boston area district judges.
+>
+> Format: A data frame with 46 observations on the following 2 variables.
+>
+> **Percent** is the percent of women on the venire’s of the Spock trial judge and 6 other Boston area
+judges
+>
+>**Judge** is a factor with levels "Spock's", "A", "B", "C", "D", "E" and "F"
+
+We can run a one-way ANOVA test comparing the mean percent of women on the venire of 7 judges (Spock's judge and 6 other Boston area judges) to determine whether there is statistical evidence that the mean percentage varies between groups (e.g. judges):
+```{r}
+case0502
+
+model <- aov(case0502$Percent ~ case0502$Judge)
+summary(model)
+
+```
+
+
+## Post-hoc ANOVA
+If the p-value in the ANOVA output is less than 0.05, we reject the null hypothesis. This tells us that the mean value between each group is not equal. However, it doesn't tell us *which* groups differ from each other. In order to find this out, we must perform a post-hoc test. We can use the Tukey HSD ("honestly significant difference") test to do this:
+```{r}
+
+TukeyHSD(model)
+
+```
+
+
+## Two-way ANOVA 
+A two-way ANOVA (also called *multiple-factor ANOVA*) is used to determine whether or not there is a statistically significant difference between the means of three or more independent groups that have been split on two variables.
+
+For this example, we will use the `moths` dataset. This dataset has the following description:
+> An experiment to catch moths using a specific trap and using 3 kinds of lures: Scent, Sugar, and Chemical. The trap has 4 different locations: Ground, Lower, Middle, Top.
+
+We need to read the data in from a CSV and do some reshaping to get it into a format we can use for running our two-way ANOVA test:
+```{r}
+data <- read.csv("moths.csv")
+data
+
+moths <- melt(data, measure.vars = c("Scent","Sugar","Chemical"))
+names(moths) <-c("Location","Lure","Caught")
+moths
+# melt each individual data point of moths caught into a separate row, where each data point is represented by only one location and one lure
+
+```
+
+We can now run our two-way ANOVA test comparing whether the mean number of moths caught varies by location and lure:
+```{r}
+summary(aov(Caught ~ Location + Lure, data = moths))
+```
+
+
+
+Note that this fitted model is called an **additive model**. It makes the assumption that the two factors are independent. If you think that these two variables might interact to create a synergistic effect (e.g. if specific lures worked better at specific locations), we can switch to using a model that includes the possibility of this interaction effect:
+```{r}
+
+```
+
+
+# 7. Non-parametric Independence Tests
+
+## Pearson's Chi-Squared Test (Chi^2^ or $X$^2^)
+Chi-Squared test is a statistical method for determining if two categorical variables have significant correlation between them. Both those variables should be from the same population and they should be categorical like -- `Yes`/`No`, `Male`/`Female`, `Red`/`Green`, etc.
+
+For our example, we will use the `Cars93` dataset from the `MASS` library. This dataset contains sales data for different models of cars sold in 1993. This dataset has many factor variables that can be considered categorical. For our model, we will consider `AirBags` (which indicate the presence of seatbelts in `Driver & Passenger`, `Driver only`, and `None` locations) and `Type` (which indicates whether a vehicle is considered to be `Compact`, `Large`, `Midsize`, `Small`, `Sporty`, or `Van`).
+
+We aim to find out if there is any significant correlation between the types of cars sold and the type of airbags it has:
+```{r}
+# Create a data frame from the main data set.
+
+
+# Create a table with the needed variables.
+
+
+# Perform the Chi-Square test.
+
+```
+
+
+## Fisher's Exact Test
+Fisher's exact test is a non-parametric method for comparing the proportion of categories in two different independent groups (categorical variables) in a contingency table. The categorical variables should be measured dichotomously (e.g. `Male`/`Female`, `treated`/`no treated`, `cured`/`no cured`, etc.). Unlike the Chi-squared test, the Fisher's exact test is an **exact test** (returns exact $p$ value) and can be applied on smaller sample sizes ($n<1000$). This test is an alternative to the Chi-squared test, especially when the frequency count is $<5$ for more than 20% of cells in the dataset. If you have larger sample size, it is better to use Chi-squared test.
+
+In the Fisher's exact test, the probability of getting results (observed frequencies) is directly calculated from hypergeometric distribution and not from using any test statistics. The assumptions for running Fisher's exact test are:
+
+1. The two variables are categorical (nominal) and data is randomly sampled.
+2. The levels of variables are mutually exclusive.
+3. Observations should be independent of each other.
+4. Observation data should be frequency counts and not percentages, proportions or transformed data.
+
+The **null hypothesis** is that two categorical variables are independent (no association between the two variables). Whereas, the **alternative hypothesis** is that two categorical variables are dependent (there is an association between the two variables). Both one and two-tailed hypotheses can be tested using the Fisher's exact test.
+
+For an example, we will use a dataset representing cancer patients in a clinical trial of an experimental treatment. The data contains two categorical variables with two binary treatment outcomes (`treated` or `nontreated`, and `cured` or `noncured`). In this dataset, we need to test if there is an association between treatments and treatment outcomes:
+```{r}
+# create a dataframe
+
+
+# run the test
+
+```

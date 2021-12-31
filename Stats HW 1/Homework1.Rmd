@@ -1,0 +1,226 @@
+---
+title: "Stats Homework 1"
+output: pdf_document
+---
+Scenario: As a researcher you are interested in understanding how two methods of inspecting code work. One method uses a checklist, and the other is a method called perspective-based reading (PBR). We have provide simulated data for an experiment comparing these inspections methods (Note: Be sure to download a local copy of the data set before proceeding).
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(modeest) # required for `mfv()` function
+library(nortest)
+```
+
+# Getting help
+To get help in R about a function, for example `boxplot`, type `?boxplot` in the command line.
+
+# Loading the data
+For this part, load the inspection data ("inspection.csv") file located in the assignment folder with this file. 
+
+```{r}
+# code goes here
+inspection_data <- read.csv('inspection.csv')
+print(inspection_data)
+
+mode(inspection_data)
+typeof(inspection_data)
+is.data.frame(inspection_data)
+
+```
+
+# Plotting
+You would like to know the descriptive statistics of the two inspection methods. Compare the samples via their mean, median, and box-plot distributions.
+
+```{r}
+# code goes here
+pbr_mean <- mean(inspection_data$pbr)
+pbr_median <- median (inspection_data$pbr)
+cat("\npbr's mean is:", pbr_mean)
+cat("\npbr's median is:", pbr_median)
+
+checklist_mean <- mean(inspection_data$checklist)
+checklist_median <- median (inspection_data$checklist)
+cat("\nchecklist's mean is:", checklist_mean)
+cat("\nchecklist's median is:", checklist_median)
+
+
+boxplot(inspection_data, main = "Box-plot distributions", xlab = "Method", ylab = "Time", col="darkmagenta")
+```
+
+# Normality
+You want to see if your data is normally distributed. Hint: You can use Shapiro-Wilk or Anderson-Darling. Justify which is more appropriate.
+```{r}
+#code goes here
+qqnorm(inspection_data$pbr)
+qqline(inspection_data$pbr, col="blue")
+
+
+# Since the Shapiro-Wilk normality test is for a small size test, and this sample is only 60, the Shapiro-Wilk normality test is more appropriate than Anderson-Darling test.
+
+# Shapiro-Wilk normality test
+shapiro.test(inspection_data$pbr)
+# Anderson-Darling normality test 
+ad.test(inspection_data$pbr)
+
+
+qqnorm(inspection_data$checklist)
+qqline(inspection_data$checklist, col="blue")
+
+# Shapiro-Wilk normality test
+shapiro.test(inspection_data$checklist)
+# Anderson-Darling normality test 
+ad.test(inspection_data$checklist)
+
+```
+
+# Bootstrapping
+You would like to do "bootstrap" your data to make sure that data parameters are robust. Bootstrapping is a statistical method for estimating the sampling distribution by sampling with replacement from the original sample. Note: You will need to do this to expand your "term project data" to include enough data for analysis.
+
+Bootstrap the data. Then compare and contrast the original dataset with the bootstrap (use descriptive statistics as before).
+
+```{r}
+# Step 1: Randomly resample data points for each treatment 20000 times  (hint: you can use sample or replicate)
+
+set.seed(1234)
+#expande_pbr <- replicate(n = 1, rnorm(20000, mean = mean(inspection_data$pbr), sd=2), simplify = FALSE[[1]] )
+expande_pbr <- rnorm(20000, mean = mean(inspection_data$pbr), sd=2)
+expande_pbr <- round(expande_pbr, 0)
+cat("\nBootstrapping expande_pbr:\n")
+#expande_pbr               
+
+expande_checklist <- rnorm(20000, mean = mean(inspection_data$checklist), sd=2)
+expande_checklist <- round(expande_checklist, 0)
+cat("\nBootstrapping expande_checklist:\n")
+#expande_checklist               
+
+
+
+# Step 2: Draw the histogram to compare the orignal with the bootstrap data for each treatment separately (hint: use `hist`)
+
+hist(inspection_data$pbr, xlim=c(10,30), col="darkmagenta")
+hist(expande_pbr, xlim=c(10,30), col="darkmagenta")
+
+hist(inspection_data$checklist, xlim=c(10,30), col="darkmagenta")
+hist(expande_checklist, xlim=c(10,30), col="darkmagenta")
+
+# Step 3: Check the normality of the bootstrapped data.
+
+qqnorm(expande_pbr)
+qqline(expande_pbr, col="blue")
+
+#Shapiro-Wilk normality test
+#sample size must be between 3 and 5000
+#shapiro.test(expande_pbr)
+
+# Anderson-Darling normality test 
+ad.test(expande_pbr)
+
+
+qqnorm(expande_checklist)
+qqline(expande_checklist, col="blue")
+
+# Shapiro-Wilk normality test
+#sample size must be between 3 and 5000
+#shapiro.test(expande_checklist)
+
+# Anderson-Darling normality test 
+ad.test(expande_checklist)
+
+
+# Step 4: Compare the descriptive statistics of original with the bootstrapped data.
+
+cat("\npbr's mean is:", pbr_mean)
+cat("\npbr's median is:", pbr_median)
+
+cat("\nchecklist's mean is:", checklist_mean)
+cat("\nchecklist's median is:", checklist_median)
+
+
+cat("\ndescriptive statistics of expande_pbr:\n")
+cat("\nexpande_pbr's mean is:")
+mean(expande_pbr)
+cat("\nexpande_pbr's median is:")
+median (expande_pbr)
+summary(expande_pbr)
+
+cat("descriptive statistics of expande_checklist:\n")
+cat("\nexpande_checklist's mean is:")
+mean(expande_checklist)
+cat("\nexpande_checklist's median is:")
+median (expande_checklist)
+summary (expande_checklist)
+```
+
+In the rest of the HW, we will use the original dataset.
+
+#dataFormatting
+To run statistics you need your data needs to be `reshaped' to look like this:
+"","treatment","time"
+"1","pbr",20
+.....
+"2","checklist",19
+```{r}
+#code goes here (hint: use melt or reshape)
+#melt(inspection_data, id.vars ="", measure.vars = c("pbr", "checklist"))
+
+tdata <- melt(inspection_data)
+
+data <- data.frame (id = rep (c("1", "2"), each = 30), treatment = c(tdata$variable), time=c(tdata$value))
+data
+
+data2 <- melt(inspection_data, measure.vars = c("pbr","checklist"))
+names(data2) <-c("treatment","time")
+
+```
+
+# T-tests
+Now you would like to statistically compare the mean time used for two inspection methods. Test and report for significance at 0.05.
+
+a) Perform a two-tailed t-test (assume the variances are equal).
+
+```{r}
+# code goes here
+
+t.test(data$time ~ data$treatment, alternative = "two.sided", var.equal = TRUE)
+
+```
+
+b) Perform a one-tailed t-test (assume PBR takes less time than checklist, variances are equal) and check if results are statistically significant.
+
+```{r}
+# code goes here
+t.test(data$time ~ data$treatment, alternative = "less", var.equal = TRUE)
+
+```
+
+c)  Assume that in the study subjects were paired together by experience level and comparisons are done within pairs, and use a paired (two-tailed) t-test to check if the results are statistically significant.
+
+```{r}
+# code goes here
+t.test(inspection_data$pbr, inspection_data$checklist, paired = TRUE)
+```
+
+d) Re-do parts a,b,c using non-parametric tests instead (Wilcoxon tests, also known as Mann-Whitney) and compare the p-values to what you originally obtained.
+
+```{r}
+# code goes here for all 3 cases
+
+# Wilcoxon tests
+
+# two-tailed test
+wilcox.test(data$time ~ data$treatment, alternative = "two.sided", exact = FALSE, var.equal = TRUE)
+
+# one-tailed test
+wilcox.test(data$time ~ data$treatment, alternative = "less", exact = FALSE, var.equal = TRUE)
+
+#paired (two-tailed) test 
+wilcox.test(inspection_data$pbr, inspection_data$checklist, paired = TRUE, exact = FALSE, var.equal = TRUE)
+
+```
+
+```

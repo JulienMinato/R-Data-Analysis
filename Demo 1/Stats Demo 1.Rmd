@@ -1,0 +1,189 @@
+---
+title: "Stats Demo 1"
+output: pdf_document
+---
+
+## Environment setup
+```{r setup, echo=T, results='hide', error=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(Sleuth3) # example datasets from textbook, "The Statistical Sleuth - A Course in 
+# Methods of Data Analysis (3rd Edition)"
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(modeest) # required for `mfv()` function
+```
+
+# 1. Creating data
+Creating data for test. Prices for CS course books in OSU bookstore.
+Notice the difference between lists (`Prices`) and dataframes (`PriceDf`).
+```{r}
+Prices <- c(99.34, 51.53, 20.45, 97.22, 61.89, 58.17, 61.63, 44.63, 96.69, 48.88)
+Prices
+
+# checking the type of the Prices variable
+typeof(Prices)
+
+# checking whether the Prices variable is a dataframe
+is.data.frame(Prices)
+```
+
+```{r}
+PriceDf <- as.data.frame(Prices)
+colnames(PriceDf) <- ("Price")
+PriceDf
+
+# checking the type of the Prices variable
+typeof(PriceDf)
+
+# checking whether the Prices variable is a dataframe
+is.data.frame(PriceDf)
+```
+
+Adding genres for each of the textbooks, and creating a new dataframe (`BookStore`) to hold both prices and genres.
+```{r}
+Genres <- factor(c('Science', 'Engineering', 'Art', 'Science', 'Math', 'Engineering', 'Art', 'Math', 'Engineering', 'Art'))
+
+# the data.frame() function will infer column names from the names of variables provided to it, unless we explicitly set them ourselves
+BookStore <- data.frame(Price=Prices, Genre=Genres)
+BookStore
+```
+
+# 2. Working with Dataframes
+Manipulating dataframes is easier (than using lists) as each column becomes an object.
+
+Accessing columns within a data frame can be done using either `[`, `[[`, or `$` operators:
+```{r}
+# same result for read the data
+BookStore["Price"]
+BookStore[["Price"]]
+BookStore$Price
+
+```
+Adding columns to an existing data frame can be done using either the `$` or `[` operators, or the `cbind` function:
+```{r}
+Published <- c(1921, 2004, 2016, 2001, 1958, 1996, 2010, 2002, 1999, 2014)
+
+# add some data
+BookStore$Published <- Published
+# or [""]
+# or 
+BookStore
+
+```
+
+Bonus: To remove that duplicate `Published` column from our `BookStore` dataframe:
+```{r}
+
+BookStore <- BookStore[, !duplicated(names(BookStore))]
+BookStore
+```
+Let's also look at a couple of descriptive statistics for the data in our dataframe:
+```{r}
+mean(BookStore$Price)
+median(BookStore$Price)
+mfv(BookStore$Price)
+summary(BookStore$Price)
+
+```
+
+# 3. Replicating Data
+Before we begin to analyze our data, we need to expand our data so that we have a reasonably large sample size. This is not appropriate in real-world data that is intended for publication, but is useful when setting up your analysis and visually inspecting the data.
+
+We will resample our data out to 1000 textbooks that based on a normal distribution that is within 2 standard deviations of the mean:
+```{r}
+set.seed(1234)
+
+ExpandePrices1 <- replicate(n=1, rnorm(1000, mean = mean(BookStore$Price), sd=2),simplify = FALSE[[1]])
+
+# ExpandePrices <- rnorm(1000, mean = mean(BookStore$Price), sd=2)
+# # trans to xx.xx
+#ExpandePrices1 <- round(ExpandePrices1, 2)
+#ExpandePrices1
+# ExpandePrices
+# 
+# ExpandeGenres <- sample(unique(BookStore$Genre), replace = TRUE, size = 1000)
+# ExpandeGenres
+# 
+# ExpandeBookStore <- data.frame(Prices = ExpandePrices, Genre = ExpandeGenres)
+# ExpandeBookStore
+
+```
+
+What does the descriptive statistics of this larger dataset look like?
+```{r}
+mean(ExpandeBookStore$Prices)
+median(ExpandeBookStore$Prices)
+mfv(ExpandeBookStore$Prices)
+summary(ExpandeBookStore$Prices)
+```
+
+# 4. Plots
+`ggplot2` provides a platform to plot various plots by changing the graph types. Refer to https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf for common commands.
+The type of plot depends on the nature of the variable.
+
+## Visual inspections
+First, lets look at a histogram of our smaller dataset (`BookStore`) and then a histogram of our larger dataset (`ExpandedBookStore`):
+```{r}
+
+hist(BookStore$Price)
+hist(ExpandeBookStore$Prices)
+
+```
+
+## Customizing visualizations with `ggplot`
+Neither of these plots uses the full power of `ggplot2`, so let's convert the larger dataset into a `ggplot` graph:
+```{r}
+ggplot(ExpandeBookStore, aes(x=Prices)) + geom_histogram(bins=30, color="black", file="grew") +labs(title = "OSU bookstore", x="Prices", y="Genre")
+
+
+ggplot(data = ExpandeBookStore) + geom_point(
+  mapping = aes(x = Prices, y = Genre))
+
+
+```
+
+## Different types of plots
+Now we can begin to explore some other plot visualizations to get a feel for the distribution of our data. Perhaps we want to see what the distributions looks like when grouped by the genre:
+```{r}
+# Line plots
+
+# ggplot(ExpandeBookStore, aes(x=Prices)) + geom_histogram(bins=30, color="black", file="grew") # +labs(title = "OSU bookstore", x="Princes", y="Genre")
+
+ggplot(data = ExpandeBookStore) + geom_point(
+  mapping = aes(x = Prices, y = Genre))
+
+# Boxplots
+ggplot(data = ExpandeBookStore) + geom_boxplot(
+  mapping = aes(x = Prices, y = Genre, color = Genre)) + labs(title = "OSU Books", x="Prices", y="Genre")
+```
+
+For diversity, let's also look at the boxplots and scatter plots for a real dataset. The `iris` dataset is a built-in dataset in R that contains measurements on 4 different attributes (measured in centimeters) for 50 flowers from 3 different species:
+```{r}
+
+ggplot(iris,aes(x=Species, y=Sepal.Length)) + geom_boxplot()
+
+ggplot(iris,aes(x=Species, y=Sepal.Length)) + geom_point()
+
+
+```
+
+# 5. Central Limit Theorem
+When repeated samples are drawn with a sample size of approximately 30, the sample mean distribution approximately represents a normal distribution:
+```{r}
+# change the `n` parameter and re-run to see how the sample size changes the shape of the distribution
+n <- 1000
+
+sample <- rep(0, n)
+for(i in 1:n){
+	newSample <- rnorm(2)
+	sample[i] <- mean(newSample)
+}
+
+hist(sample, 
+	main=paste0('Histogram of Sample Medians (n = ', n, ')'), 
+	xlab='Sample Median')
+```

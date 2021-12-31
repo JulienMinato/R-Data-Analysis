@@ -1,0 +1,163 @@
+---
+title: "Stats Homework 2"
+output: pdf_document
+---
+## Environment setup
+Same initial steps that we ran in `Stats Demo 1`, just consolidated.
+```{r setup, echo=T, results='hide', error=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+
+library(Sleuth3) # example datasets from textbook, "The Statistical Sleuth - A Course in 
+# Methods of Data Analysis (3rd Edition)"
+library(MASS) # example dataset representing the sales of different models of cars in 1993
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(modeest) # required for `mfv()` function
+library(nortest) # required for running Anderson-Darling test for normality
+library(effsize)
+```
+
+# ANOVA
+
+
+As an SE researcher you are evaluating different programming languages. For the next set of questions input the R code and interpret your findings.
+
+a) The results of your first study compares Java, Python, and Ruby code based on the size of the programs in source (i.e. non-blank, non-commented) lines of code. Perform an ANOVA to determine whether there is an effect on size due to programming language. Use `lang-size.csv`. 
+
+```{r}
+# code goes here. 
+data_a <- read.csv("lang-size.csv")
+data_a
+summary(aov(sloc ~ lang, data = data_a))
+
+```
+Report: We ran Anova(F(2, 87) = 62.6, p<0.001)
+
+The p-value is lower than 0.05, and the differences are statistically significant, which is the language has a real impact.
+
+
+
+b) In a subsequent study you measured the programming time (in hours) required to solve a program in Java, Python, and Ruby. This was a within subject study design: each participant solved the problem three times, and all participants solved the problem in the same order (Java, then Python, then Ruby). Perform an ANOVA to determine whether there is an effect due to programming language. Use `lang-time.csv`.
+
+```{r}
+# code goes here
+data_b <- read.csv("lang-time.csv")
+data_b
+summary(aov(times ~ lang + participant, data = data_b))
+
+```
+Report: We ran Anova (F(2, 46) = 4.583, p = 0.0153) , Anova (F(23, 46) = 1.323, p = 0.2061)
+
+
+The p-value of lang is lower than 0.05 showing substantial evidence against the null hypothesis.
+
+c) Your realized you should have counterbalanced, so you replicated the study from (b) which uses a crossover design to control for ordering. Each participant solved the problem in all three languages, but in each participant solved them in a different order. Perform an ANOVA to determine whether there is an effect due to programming language. Use `lang-time-crossover.csv`. 
+
+```{r}
+# code goes here
+data_c <- read.csv("lang-time-crossover.csv")
+data_c
+summary(aov(times ~ lang + participant + treatment, data = data_c))
+
+```
+Report: We ran Anova (F(2, 8) = 0.377, p = 0.698) , Anova (F(5, 8) = 1.812, p = 0.217), Anova (F(2, 8) = 0.976, p = 0.418)
+
+The p-value of lang is higher than 0.05, there's no strong evidence against null hypothesis. We cannot conclude that a significant difference exists.
+
+d) You have some simulated results from an experiment that compared development time for Java, Python and Ruby, for subjects with low experience and high experience. Perform an ANOVA and identify which factors (language, experience) had a statistically significant effect. Also specify whether the interaction between programming language and experience was statistically significant or not. Use `lang-time-exp.csv`.  yes
+
+```{r}
+# code goes here
+data_d <- read.csv("lang-time-exp.csv")
+data_d
+summary(aov(times ~ lang + exp + lang:exp, data = data_d))
+
+```
+Report:We ran Anova (F(2, 114) = 1.730, p = 0.182) , Anova (F(1, 114) = 206.137, p < 0.001), Anova (F(2, 114) = 1.502, p = 0.227)
+
+The exp p-value is lower than 0.05, which means the differences are statistically significant.
+
+The p-value between language and experience is 0.227; we cannot conclude that a significant difference exists. 
+
+
+# Part 3: Data analysis of an experiment
+
+In this question, you'll analyze the raw data from an experiment and write up the results (similar to a publication).
+
+The data is from a experiment to test whether statically typed languages (e.g. Java) or dynamically typed languages (e.g. Python) require more programming effort. The study evaluates the languages on two problems, a "small" problem and a "large" problem, to see if the results change based on the size of the problem. The study is a factorial design. The raw data from the experiment is available in this file: `lang-time-size.csv`.
+
+Analyze the data and write up a short "results" section (as if it were a part of a paper) with your analysis of the data. This section should contain:
+* Box plots to show the raw data
+* Analysis of variance tables to determine if there are any interactions
+* Results of pairwise t-tests to test if the factors that you may see significance truly have an effect
+* Interaction plot between the 2 factors 
+* Effect sizes for programming language for the "small" problem and for the "large" problem.
+* I am not looking for a specific format, use your judgement about the best way to present this data to convey the results to a reader. 
+
+# NEW
+# Part 3: Data analysis of an experiment
+
+In this question, you'll analyze the raw data from an experiment and write up the results (similar to a publication).
+
+The data is from a experiment to test whether statically typed languages (e.g. Java) or dynamically typed languages (e.g. Python) require more programming effort. The study evaluates the languages on two problems, a "small" problem and a "large" problem, to see if the results change based on the size of the problem. The study is a factorial design. The raw data from the experiment is available in this file: `lang-time-size.csv`.
+
+Analyze the data and write up a short "results" section (as if it were a part of a paper) with your analysis of the data. This section should contain:
+* Analysis of variance tables to determine if there are any interactions
+* Interaction plot between the 2 factors 
+* Effect sizes for programming language for the "small" problem and for the "large" problem.
+* I am not looking for a specific format, use your judgement about the best way to present this data to convey the results to a reader. 
+
+```{r}
+# Code for analysis goes here.
+
+data_part3 <- read.csv("lang-time-size.csv")
+data_part3
+
+summary(aov(times ~ lang + size + lang:size, data = data_part3))
+boxplot(times ~ lang + size,data = data_part3, col=(c("red","blue")))
+        
+
+interaction.plot(x.factor = data_part3$size, #x-axis variable
+                 trace.factor = data_part3$lang, #variable for lines
+                 response = data_part3$times, #y-axis variable
+                 fun = median, #metric to plot
+                 ylab = "Time",
+                 xlab = "Problem Size",
+                 col = c("red", "blue"),
+                 lty = 1, #line type
+                 lwd = 1, #line width
+                 trace.label = "Languages")
+
+# Effect sizes
+
+small_java <- data_part3[which(data_part3$size == "small" &data_part3$lang == "java" ),]
+small_python <- data_part3[which(data_part3$size == "small" &data_part3$lang == "python" ),]
+
+large_java <- data_part3[which(data_part3$size == "large" &data_part3$lang == "java" ),]
+large_python <- data_part3[which(data_part3$size == "large" &data_part3$lang == "python" ),]
+
+cat("small problem effect sizes:\n")
+cohen.d(small_java$times, small_python$times)
+
+cat("larg problem effect sizes:\n")
+cohen.d(large_java$times, large_python$times)
+
+#cohen.d(size$java, size$python)
+
+
+
+```
+
+
+# part results: Analysis from the part3
+
+Report: We ran Anova (F(1, 116) = 0.085, p = 0.772) , Anova (F(1, 114) = 133.246, p < 0.001), Anova (F(1, 116) = 19.968, p < 0.001)
+
+The p-value of size and the interactions between language and size are lower than 0.001. Therefore the differences are statistically significant. 
+The size and the interaction between language and size have impacts on time. 
+
+By using the Cohen's function to evaluate effect size. The Cohen's d in small problem shows it has a large effect size, and the large problem doesn't.
+
